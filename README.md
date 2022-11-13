@@ -24,6 +24,6 @@ math: The python math module
 
 I've tried the following function on 58 steps and it is giving good results:
 CFG:
-0:=math.fabs( (e*1.4-2)*15),30:5
+0:=math.fabs( (e*1.4-2)*15);30:5
 ETA:
-0:=0.01, 20:=e*1.5,10:=e
+0:=0.01; 20:=e*1.5;10:=e
