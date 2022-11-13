@@ -17,9 +17,9 @@ class Script(scripts.Script):
         return "CFG Scheduling"
 
     def ui(self, is_img2img):
-        placeholder="The steps on which to modify, in format step:value - example: 0:10 , 10:15"
+        placeholder="The steps on which to modify, in format step:value - example: 0:10 ; 10:15"
         n0 = gr.Textbox(label="CFG",placeholder=placeholder)
-        placeholder="You can also use functions like: 0:=math.fabs(-t) , 1:=(1-t/T) , 2:=e ,3:=t*d"
+        placeholder="You can also use functions like: 0:=math.fabs(-t) ; 1:=(1-t/T) ; 2:=e ;3:=t*d"
         n1 = gr.Textbox(label="ETA",placeholder=placeholder)
         #n2 =gr.Textbox(label="lalala",placeholder="")
         return [n0,n1]
@@ -46,6 +46,13 @@ class Script(scripts.Script):
         self.P={
             'cfg':p.cfg_scale,
             'd':p.denoising_strength,
+
+            'min':min,
+            'max':max,
+            'abs':abs,
+            'pow':pow,
+            'pi':math.pi,
+
         }
 
         if src[0:4]=="eval":
@@ -55,7 +62,7 @@ class Script(scripts.Script):
 
         
         
-        arr = src.split(',')##2
+        arr = src.split(';')##2
         s=[]
         val=default
         for j in range(p.steps):
@@ -67,15 +74,18 @@ class Script(scripts.Script):
                
                  break
               i=i+1
-              val=v[1]
-        
+              val=v[1].strip()
+          #lets just evaluate all        
           if val[0]=="=":
-            _eta=1-j/p.steps
-            params={'t':j,'T':p.steps,'math':math,'p':p,'e':_eta}
-            params.update(self.P)
-            s.append(float(eval(val[1:],params)))
-          else:    
-            s.append(float(val))
+            val=val[1:]
+          
+          _eta=1-j/p.steps
+          params={'t':j,'T':p.steps,'math':math,'p':p,'e':_eta}
+          params.update(self.P)
+          s.append(float(eval(val,params)))
+          #end while loop
+          #else:    
+            #s.append(float(val))
         #print(s)
         return s
 
