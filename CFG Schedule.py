@@ -19,40 +19,56 @@ class Script(scripts.Script):
     def ui(self, is_img2img):
         placeholder="The steps on which to modify, in format step:value - example: 0:10 ; 10:15"
         n0 = gr.Textbox(label="CFG",placeholder=placeholder)
-        placeholder="You can also use functions like: 0:=math.fabs(-t) ; 1:=(1-t/T) ; 2:=e ;3:=t*d"
+        placeholder="You can also use functions like: 0:=math.fabs(-t) ; 1:=(1-t/T) ; 2:=e ;3:t*d"
         n1 = gr.Textbox(label="ETA",placeholder=placeholder)
         #n2 =gr.Textbox(label="lalala",placeholder="")
         return [n0,n1]
 
     def run(self, p, cfg,eta):
+
+        if p.sampler_index in (0,1,2,7,8,10,14):
+            max_mul_count = p.steps * p.batch_size
+            steps_per_mul = p.batch_size
+        elif p.sampler_index in (3,4,5,6,11,12,13):
+            max_mul_count = ((p.steps*2)-1) * p.batch_size
+            steps_per_mul = 2 * p.batch_size
+        elif p.sampler_index==15: # ddim
+            max_mul_count = fix_ddim_step_count(p.steps)
+            steps_per_mul = 1
+        elif p.sampler_index==16: # plms
+            max_mul_count = fix_ddim_step_count(p.steps)+1
+            steps_per_mul = 1
+        else:
+            return # 9=dpm adaptive
+
+
         #print("it is:",n0t)
         #for x in range(int(n)):
         self.p=p
         cfg=cfg.strip()
         eta=eta.strip()
-        #n2=n2.strip()
         if cfg:
-            p.cfg_scale=Fake_float(p.cfg_scale,self.split(cfg))
-        #for i in p.__dict__:
-        #    print(i)
-        #    #print(p[i])
+            p.cfg_scale=Fake_float(p.cfg_scale,self.split(cfg)  , max_mul_count, steps_per_mul)
+ 
         if eta:
-            p.eta=Fake_float(p.eta or 1,self.split(eta)) 
+            p.eta=Fake_float(p.eta or 1,self.split(eta), max_mul_count, steps_per_mul) 
         
         proc = process_images(p)
         return proc #Processed(p, image, p.seed, proc.info)
+
+
     def split(self,src,default='0'):
         p=self.p
         self.P={
             'cfg':p.cfg_scale,
-            'd':p.denoising_strength,
+            'd':p.denoising_strength or 1,
 
             'min':min,
             'max':max,
             'abs':abs,
             'pow':pow,
             'pi':math.pi,
-
+            'x':self._interpolate
         }
 
         if src[0:4]=="eval":
@@ -65,7 +81,7 @@ class Script(scripts.Script):
         arr = src.split(';')##2
         s=[]
         val=default
-        for j in range(p.steps):
+        for j in range(p.steps+1):
           i=0
           while i<len(arr):
               v=arr[i].split(":")
@@ -88,12 +104,16 @@ class Script(scripts.Script):
             #s.append(float(val))
         #print(s)
         return s
+    #limits a range of a value
+    def _interpolate(self,v,start,end):
+        v=min(max(v,start),end)
+        return v/(end-start)
 
     def evaluate (self,src):
         s=[]
         p=self.p
         T=self.p.steps
-        for j in range(T):
+        for j in range(T+1):
             _eta=1-j/p.steps
             params={'t':j,'T':p.steps,'math':math,'p':p,'e':_eta}
             params.update(self.P)
@@ -101,14 +121,22 @@ class Script(scripts.Script):
         return s
 
 class Fake_float(float):
-    def __new__(self, value, arr):
+    def __new__(self, value, arr, max_mul_count, steps_per_mul):
         return float.__new__(self, value)
 
-    def __init__(self, value, arr):
+    def __init__(self, value, arr, max_mul_count, steps_per_mul):
         float.__init__(value)
         self.arr = arr
         self.curstep = 0
         #self.p=p
+
+        #self.orig_value = orig_value
+        #self.target_value = target_value
+        self.max_mul_count = max_mul_count
+        self.current_mul = 0
+        self.steps_per_mul = steps_per_mul
+        self.current_step = 0 #fake
+        self.max_step_count = (max_mul_count // steps_per_mul) + (max_mul_count % steps_per_mul > 0)
 
     def __mul__(self,other):
         return self.fake_mul(other)
@@ -118,7 +146,24 @@ class Fake_float(float):
 
     def fake_mul(self,other):
         #print("\n",self.p.n_iter,"\n")
-        fake_value = self.arr[self.curstep]
+        if (self.max_step_count==1):
+            fake_value = self.arr[0]#self.curstep]
+        else:
+            #fake_value = self.arr[self.curstep+ (self.target_value - self.orig_value)*(self.current_step/(self.max_step_count-1))]
+            fake_value = self.arr[self.curstep]
         #print(self.curstep,fake_value)
-        self.curstep += 1
+        #self.curstep += 1
+        
+        
+        #print("---\nstep:",self.curstep,"\nmax steps:",self.max_step_count,"\nfake step:",self.current_step,"\n--")
+        self.current_mul = (self.current_mul+1) % self.max_mul_count
+        self.curstep = (self.current_mul) // self.steps_per_mul
+        self.current_step+=1#FAKE STEP
         return fake_value * other
+
+
+def fix_ddim_step_count(steps):
+    valid_step = 999 / (1000 // steps)
+    if valid_step == int(valid_step): steps=int(valid_step)+1
+    if ((1000 % steps)!=0): steps +=1
+    return steps
