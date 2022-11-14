@@ -1,3 +1,8 @@
+#CFG Scheduler for Automatic1111 Stable Diffusion web-ui
+#Author: https://github.com/guzuligo/
+#Based on: https://github.com/tkalayci71/attenuate-cfg-scale
+#Version: 1.3
+
 from logging import PlaceHolder
 import math
 import os
@@ -48,10 +53,10 @@ class Script(scripts.Script):
         cfg=cfg.strip()
         eta=eta.strip()
         if cfg:
-            p.cfg_scale=Fake_float(p.cfg_scale,self.split(cfg)  , max_mul_count, steps_per_mul)
+            p.cfg_scale=Fake_float(p.cfg_scale,self.split(cfg,str(p.cfg_scale))  , max_mul_count, steps_per_mul)
  
         if eta:
-            p.eta=Fake_float(p.eta or 1,self.split(eta), max_mul_count, steps_per_mul) 
+            p.eta=Fake_float(p.eta or 1,self.split(eta,str(p.eta)), max_mul_count, steps_per_mul) 
         
         proc = process_images(p)
         return proc #Processed(p, image, p.seed, proc.info)
@@ -78,19 +83,34 @@ class Script(scripts.Script):
 
         
         
-        arr = src.split(';')##2
+        arr0 = src.split(';')##2
+
+        #resort array accounting for commas in indecies
+        arr=[]
+        for j in arr0:
+            #print(j)
+            v=j.split(":")
+            q=v[0].split(",")
+                
+            for i in q:
+                arr.append(i+":"+v[1])
+
+                
+
+
+        arr.sort(key=self._sort)
         s=[]
         val=default
         for j in range(p.steps+1):
           i=0
-          while i<len(arr):
+          while i<len(arr) and i<=j:
               v=arr[i].split(":")
               #s=proc[j].n_iter
-              if int(v[0])>=j:
-               
+              if int(v[0])==j:
+                 val=v[1].strip()
                  break
               i=i+1
-              val=v[1].strip()
+              
           #lets just evaluate all        
           if val[0]=="=":
             val=val[1:]
@@ -102,12 +122,16 @@ class Script(scripts.Script):
           #end while loop
           #else:    
             #s.append(float(val))
-        #print(s)
+        print(s,"\n")
         return s
     #limits a range of a value
-    def _interpolate(self,v,start,end):
-        v=min(max(v,start),end)
-        return v/(end-start)
+    def _interpolate(self,v,start=0,end=None,m=1):
+        end=end or self.p.steps
+        v=min(max(v,start),end)-start
+        return v*m/(end-start)+(1 if m<0 else 0)
+
+    def _sort(self,a):
+        return int(a.split(":")[0])
 
     def evaluate (self,src):
         s=[]
