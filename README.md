@@ -19,8 +19,16 @@ t: current step
 T: total steps
 e: (1-t/T) which is current ETA
 d: denoising strength
+pi:pi
 cfg: initial CFG
 math: The python math module
+
+Available functions:
+-From python: min, max, pow, abs
+-x(value,min,max,multiply)
+  This will take value and make it 0 when <=min, and make it 1 when >=max. Then, multiply result by last argumant.
+  If multiply is less than 0, the range becomes 1 to 0 instead
+
 
 
 I've tried the following function on 58 steps and it is giving good results:
