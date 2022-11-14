@@ -6,7 +6,7 @@ To use: Place the .py file in AUTOMATIC1111\scripts folder
 Update: 11/14/2022
   -Now works with all samplers
   -new function x. Example use: x(t,60,70,2) which will map t to be 0 at 60 and 1 and 70, then multipy by 2
-
+  -edit: Indecies can now have more than one index. Example: 0,5:=1 ; 1:10
 Update: 11/13/2022
 
 You can now use functions like: 
