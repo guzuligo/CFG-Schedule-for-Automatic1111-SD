@@ -28,3 +28,5 @@ CFG:
 0:=math.fabs( (e*1.4-2)*15);30:5
 ETA:
 0:=0.01; 20:=e*1.5;10:=e
+</pre>
+![00031-336559885-car](https://user-images.githubusercontent.com/4189008/201653592-f719533e-573a-4a59-807a-085fb7e320d0.jpg)
