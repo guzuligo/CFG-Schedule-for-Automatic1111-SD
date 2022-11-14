@@ -3,8 +3,9 @@ A script for scheduling CFG scale and ETA to change during the denoising steps
 <pre>
 Modified code of https://github.com/tkalayci71/attenuate-cfg-scale
 To use: Place the .py file in AUTOMATIC1111\scripts folder
-
-Warining: It doesn't work on all samplers. Works on Eular a.
+Update: 11/14/2022
+  -Now works with all samplers
+  -new function x. Example use: x(t,60,70,2) which will map t to be 0 at 60 and 1 and 70, then multipy by 2
 
 Update: 11/13/2022
 
