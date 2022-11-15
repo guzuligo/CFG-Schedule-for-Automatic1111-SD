@@ -89,3 +89,8 @@ Other experimental ideas I was trying. CFG value might be useless in some:
 
 0:15; 2:(5*e+30*(t%3<1 and t<25)*e*e)   /(1+d)
 0:5*e; 10:5*e*e
+
+
+# changes show on all denoising strength
+0: 6-( cfg/30*5 ) + (  (t% math.floor((32-cfg+d*4)/2))==0)*( pow(200,1-d/2)*e*e)
+0:  e*0.2 if  (t% math.floor((36-cfg)/2))==0 else pow(e,1/(1/pow(2,  (cfg-15)/30*3  )   ))  
