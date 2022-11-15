@@ -1,0 +1,8 @@
+Copy paste following to use their effect. CFG slider will still work
+
+
+About: The higher the CFG, the more frequent details added
+CFG:
+0: 5-( cfg/30*5 ) + (  (t% math.floor((35-cfg)/2))==0)*(cfg*e*0.5+30)
+ETA:
+0:  pow(e,1/(1/pow(2,  (cfg-15)/30*3  )   ))  
