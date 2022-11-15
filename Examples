@@ -46,6 +46,9 @@ ETA:
 
 
 Other experimental ideas I was trying. CFG value might be useless in some:
+0: cfg*(e>0.5)+cfg*    (3*(e%2<=0.5 and t%5<1) - 1*(t%5==2)) * (t<T-3)
+0:e+e*(e<0.5)+(e%2<=0.5 and t%5<2 and t<T-3)*0.5
+
 0: 5+ (  (t% math.floor((30+cfg)/2))==0)*10
 0:  1/(1+cfg*e*e)
 
