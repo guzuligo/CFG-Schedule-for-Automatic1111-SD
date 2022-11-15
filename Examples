@@ -27,7 +27,12 @@ ETA:
 0:  pow(e,1/(1/pow(2,  (cfg-15)/30*3  )   ))  
 
 
-
+Example 4
+About: Focus on adding details midway
+CFG:
+0:( 1-pow(2*e-1 ,2))*cfg*0.75 * (t%4<1 and t<T-4)+(31-cfg)*0.25
+ETA:
+0:  pow(2*e-1 ,2)*cfg
 
 
 
