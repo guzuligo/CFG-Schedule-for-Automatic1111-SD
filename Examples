@@ -37,7 +37,15 @@ ETA:
 
 
 
-Other experimental ideas I was trying:
+Example 5
+About: Pay more attention to details at beginning, then relax
+CFG:
+0:pow(e,0.1)*cfg*( t%4<1)+5*(1-e)
+ETA:
+0:pow(e,0.3)
+
+
+Other experimental ideas I was trying. CFG value might be useless in some:
 0: 5+ (  (t% math.floor((30+cfg)/2))==0)*10
 0:  1/(1+cfg*e*e)
 
