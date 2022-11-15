@@ -45,6 +45,15 @@ ETA:
 0:pow(e,0.3)
 
 
+Example 6
+About: This can help you compare results of this script with results without it.
+        It will try to create the same image as without it, but enhance it.
+CFG:
+0: cfg*(e>0.7 or e<0.1)+ (15-cfg*0.2)*(e<0.4 and (t%3<1))
+ETA:
+0:e+(e<0.4)*(e*3)
+
+
 Other experimental ideas I was trying. CFG value might be useless in some:
 0: cfg*(e>0.5)+cfg*    (3*(e%2<=0.5 and t%5<1) - 1*(t%5==2)) * (t<T-3)
 0:e+e*(e<0.5)+(e%2<=0.5 and t%5<2 and t<T-3)*0.5
