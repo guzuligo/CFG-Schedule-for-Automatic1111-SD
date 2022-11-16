@@ -8,7 +8,7 @@ import math
 import os
 import sys
 import traceback
-
+import numpy as np
 import modules.scripts as scripts
 import gradio as gr
 
@@ -122,7 +122,7 @@ class Script(scripts.Script):
           #end while loop
           #else:    
             #s.append(float(val))
-        print(s,"\n")
+        print(np.round(s,1),"\n")
         return s
     #limits a range of a value
     def _interpolate(self,v,start=0,end=None,m=1):
