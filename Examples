@@ -52,3 +52,11 @@ CFG:
 0: cfg*(e>0.7 or e<0.1)+ (15-cfg*0.2)*(e<0.4 and (t%3<1))
 ETA:
 0:e+(e<0.4)*(e*3)
+
+
+Example 7
+About: Conditional. Does some clean up at the end.
+CFG:
+0:abs(0.3-e)*(3.5+cfg*2)
+ETA:
+0:abs( (1.5-2*e)*3)*(pow(1-e,2) if e>.2 or cfg>20 else e)
