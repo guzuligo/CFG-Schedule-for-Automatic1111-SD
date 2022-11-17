@@ -62,3 +62,8 @@ Other experimental ideas I was trying. CFG value might be useless in some:
 #or
 0:( 1-pow(2*e-1 ,2))*(cfg +pow((1-d)*6,2) )*(0.75+(t<T/5)) * (t%4<(1+(t<T/5)) and t<T-4)+(31-cfg)*0.25
 0:pow(e,0.3)*(1+e*6*(t%8>3 and t%8<5+0*pow( (1-d)*10,2) and t>T*.6 and t<T*.6+6)   )
+
+
+#The more CFG value, the stronger it drops.
+0:(cfg+1)*(pow(cfg+1,e-1)-1/(cfg+1))/(cfg)*cfg+3
+0:e
