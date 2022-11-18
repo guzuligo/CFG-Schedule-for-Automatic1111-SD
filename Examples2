@@ -67,3 +67,10 @@ Other experimental ideas I was trying. CFG value might be useless in some:
 #The more CFG value, the stronger it drops.
 0:(cfg+1)*(pow(cfg+1,e-1)-1/(cfg+1))/(cfg)*cfg+3
 0:e
+
+
+
+
+#Test for better img2img consistancy. Keep denoising at low level and try different CFG values
+0:(1-e*.9)*cfg   + ( ((t%(2+(e>0.7)) <1)*1.1*cfg*(e+(e>0.3 and e<0.6)*0.2))    )*     (      2*( 1+pow(d,pow(2,1/(1+d))))-1     )
+0:e+ (e>0.7 and t%2==0)*3  + (e<0.3 and t%2==1 and t<T-3)*1
