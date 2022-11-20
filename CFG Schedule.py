@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.3
+#Version: 1.4
 
 from logging import PlaceHolder
 import math
@@ -31,16 +31,20 @@ class Script(scripts.Script):
 
     def run(self, p, cfg,eta):
 
-        if p.sampler_index in (0,1,2,7,8,10,14):
+        #if p.sampler_index in (0,1,2,7,8,10,14):
+        if p.sampler_name in ('Euler a','Euler','LMS','DPM++ 2M','DPM fast','LMS Karras','DPM++ 2M Karras'):
             max_mul_count = p.steps * p.batch_size
             steps_per_mul = p.batch_size
-        elif p.sampler_index in (3,4,5,6,11,12,13):
+        #elif p.sampler_index in (3,4,5,6,11,12,13):
+        elif p.sampler_name in ('Heun','DPM2','DPM2 a','DPM++ 2S a','DPM2 Karras','DPM2 a Karras','DPM++ 2S a Karras'):
             max_mul_count = ((p.steps*2)-1) * p.batch_size
             steps_per_mul = 2 * p.batch_size
-        elif p.sampler_index==15: # ddim
+        #elif p.sampler_index==15: # ddim
+        elif p.sampler_name=='DDIM': # ddim
             max_mul_count = fix_ddim_step_count(p.steps)
             steps_per_mul = 1
-        elif p.sampler_index==16: # plms
+        #elif p.sampler_index==16: # plms
+        elif p.sampler_name=='PLMS': # plms
             max_mul_count = fix_ddim_step_count(p.steps)+1
             steps_per_mul = 1
         else:
@@ -54,9 +58,10 @@ class Script(scripts.Script):
         eta=eta.strip()
         if cfg:
             p.cfg_scale=Fake_float(p.cfg_scale,self.split(cfg,str(p.cfg_scale))  , max_mul_count, steps_per_mul)
- 
+            #p.cfg_scale.p=p
         if eta:
-            p.eta=Fake_float(p.eta or 1,self.split(eta,str(p.eta)), max_mul_count, steps_per_mul) 
+            p.eta=Fake_float(p.eta or 1,self.split(eta,str(p.eta)), max_mul_count, steps_per_mul)
+            #p.cfg_scale.p=p
         
         proc = process_images(p)
         return proc #Processed(p, image, p.seed, proc.info)
@@ -169,6 +174,7 @@ class Fake_float(float):
         return self.fake_mul(other)
 
     def fake_mul(self,other):
+        #print("steps",self.p.steps)
         #print("\n",self.p.n_iter,"\n")
         if (self.max_step_count==1):
             fake_value = self.arr[0]#self.curstep]
