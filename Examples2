@@ -74,3 +74,11 @@ Other experimental ideas I was trying. CFG value might be useless in some:
 #Test for better img2img consistancy. Keep denoising at low level and try different CFG values
 0:(1-e*.9)*cfg   + ( ((t%(2+(e>0.7)) <1)*1.1*cfg*(e+(e>0.3 and e<0.6)*0.2))    )*     (      2*( 1+pow(d,pow(2,1/(1+d))))-1     )
 0:e+ (e>0.7 and t%2==0)*3  + (e<0.3 and t%2==1 and t<T-3)*1
+
+
+#random idea
+0:cfg if (t%2==0) else cfg*pow(e,pow(1-e,2))
+0:(1-pow(e,pow(1-e,2)))*2
+--
+0:cfg/(8**(2*(1-e))) if t%2==0 else 0
+--
