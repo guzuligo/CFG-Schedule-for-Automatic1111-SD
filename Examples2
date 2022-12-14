@@ -82,3 +82,8 @@ Other experimental ideas I was trying. CFG value might be useless in some:
 --
 0:cfg/(8**(2*(1-e))) if t%2==0 else 0
 --
+
+
+#Very foreceful. Needs low deniosing
+0:200/(t*0.4+1); 25:0.07;     37:cfg
+0:0.3;           25:3;        37:max((3-(t-37)/10 ),e)
