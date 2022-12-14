@@ -87,3 +87,7 @@ Other experimental ideas I was trying. CFG value might be useless in some:
 #Very foreceful. Needs low deniosing
 0:200/(t*0.4+1); 25:0.07;     37:cfg
 0:0.3;           25:3;        37:max((3-(t-37)/10 ),e)
+
+#Super forceful
+0:(1100-d*1050)/(t*0.4+1);            25:0.07;           37:cfg+cfg*d*3
+0:0.8-d*0.5;                              25:30-d*29;                      37:max((3-(t-37)/(10-10*d) ),e)
