@@ -99,7 +99,7 @@ class Script(scripts.Script):
             #self.initDenoise=p.denoising_strength
             p.extra_generation_params = {
                 "Denoising strength change factor": str(dns)+"\n",
-                "CFG Scheduler Info":"\nCFG: "+cfg+"\nETA: "+eta+"\nloops:"+loops,
+                "CFG Scheduler Info":"\nCFG: "+cfg+"\nETA: "+eta+"\nloops:"+str(loops),
             }  
         history=[]
         for loop in range(loops):
