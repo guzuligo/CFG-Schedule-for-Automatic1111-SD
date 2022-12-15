@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.4
+#Version: 1.5
 
 from logging import PlaceHolder
 import math
@@ -26,12 +26,12 @@ class Script(scripts.Script):
     def ui(self, is_img2img):
         placeholder="The steps on which to modify, in format step:value - example: 0:10 ; 10:15"
         n0 = gr.Textbox(label="CFG",placeholder=placeholder)
-        placeholder="You can also use functions like: 0:=math.fabs(-t) ; 1:=(1-t/T) ; 2:=e ;3:t*d"
+        placeholder="You can also use functions like: 0: math.fabs(-t) ; 1: (1-t/T) ; 2:=e ;3:t*d"
         n1 = gr.Textbox(label="ETA",placeholder=placeholder)
         #loops
-        n2 = gr.Slider(minimum=1, maximum=32, step=1, label='Loops', value=1)
-        n3 = gr.Slider(minimum=0.5, maximum=1.5, step=0.01, label='Denoising strength change factor', value=1)
-        return [n0,n1,n2,n3]
+        #n2 = gr.Slider(minimum=1, maximum=32, step=1, label='Loops', value=1)
+        n2 = gr.Slider(minimum=0.5, maximum=1.5, step=0.01, label='Denoising Decay per Batch', value=1)
+        return [n0,n1,n2]
 
     def prepare(self,p,cfg,eta):
         sampler_name=p.sampler_name
@@ -92,8 +92,11 @@ class Script(scripts.Script):
 
 
 
-    def run(self, p, cfg,eta,loops,dns):
+    def run(self, p, cfg,eta,dns):
+        loops=p.n_iter
+        state.job_count = loops
         p.denoising_strength=p.denoising_strength or 1
+        p.do_not_save_grid = True
         if loops>1:
             processing.fix_seed(p)
             #self.initDenoise=p.denoising_strength
@@ -103,6 +106,8 @@ class Script(scripts.Script):
             }  
         history=[]
         for loop in range(loops):
+            p.batch_size = 1
+            p.n_iter = 1
             self.loop=loop
             self.prepare(p, cfg,eta)
             proc = process_images(p)
@@ -112,7 +117,7 @@ class Script(scripts.Script):
             history.append(proc.images[0])
             p.seed+=1
             p.init_images=[proc.images[0]]
-            p.denoising_strength=min(max(p.denoising_strength * dns, 0.1), 1)
+            p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
             #print("New denoising:"+str(p.denoising_strength)+"\n" )
         if loops>0:
             p.seed=self.initSeed
