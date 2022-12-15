@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.5
+#Version: 1.51
 
 from logging import PlaceHolder
 import math
@@ -101,8 +101,8 @@ class Script(scripts.Script):
             processing.fix_seed(p)
             #self.initDenoise=p.denoising_strength
             p.extra_generation_params = {
-                "Denoising strength change factor": str(dns)+"\n",
-                "CFG Scheduler Info":"\nCFG: "+cfg+"\nETA: "+eta+"\nloops:"+str(loops),
+                "CFG Scheduler Info":" loops:"+str(loops)+" denoising decay: "+str(dns)+
+                "\nCFG: "+cfg+"\nETA: "+eta+"\n",
             }  
         history=[]
         for loop in range(loops):
