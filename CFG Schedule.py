@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.51
+#Version: 1.52
 
 from logging import PlaceHolder
 import math
@@ -93,10 +93,14 @@ class Script(scripts.Script):
 
 
     def run(self, p, cfg,eta,dns):
-        loops=p.n_iter
-        state.job_count = loops
+        loops=p.batch_size
+        batch_count=p.n_iter
+        state.job_count = loops*p.n_iter
         p.denoising_strength=p.denoising_strength or 1
         p.do_not_save_grid = True
+        original_init_image = p.init_images
+        initial_color_corrections = [processing.setup_color_correction(p.init_images[0])]
+        all_images = []
         if loops>1:
             processing.fix_seed(p)
             #self.initDenoise=p.denoising_strength
@@ -104,24 +108,30 @@ class Script(scripts.Script):
                 "CFG Scheduler Info":" loops:"+str(loops)+" denoising decay: "+str(dns)+
                 "\nCFG: "+cfg+"\nETA: "+eta+"\n",
             }  
-        history=[]
-        for loop in range(loops):
-            p.batch_size = 1
-            p.n_iter = 1
-            self.loop=loop
-            self.prepare(p, cfg,eta)
-            proc = process_images(p)
-            if loop==0:
-                self.initInfo=proc.info
-                self.initSeed=proc.seed
-            history.append(proc.images[0])
-            p.seed+=1
-            p.init_images=[proc.images[0]]
-            p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
-            #print("New denoising:"+str(p.denoising_strength)+"\n" )
-        if loops>0:
+        for n in range(batch_count):
+            history = []
+            p.init_images=original_init_image
+            for loop in range(loops):
+                if opts.img2img_color_correction:
+                        p.color_corrections = initial_color_corrections
+
+                p.batch_size = 1
+                p.n_iter = 1
+                self.loop=loop
+                self.prepare(p, cfg,eta)
+                proc = process_images(p)
+                if loop==0:
+                    self.initInfo=proc.info
+                    self.initSeed=proc.seed
+                history.append(proc.images[0])
+                p.seed+=1
+                p.init_images=[proc.images[0]]
+                p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
+                #print("New denoising:"+str(p.denoising_strength)+"\n" )
+            all_images += history
+        if loops>0:#TODO:maybe this is not needed
             p.seed=self.initSeed
-        return proc if (loops==1) else Processed(p, history, self.initSeed, self.initInfo)
+        return proc if (loops==1) else Processed(p, all_images, self.initSeed, self.initInfo)
 
 
 
