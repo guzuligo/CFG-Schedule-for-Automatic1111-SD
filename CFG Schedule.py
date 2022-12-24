@@ -1,13 +1,14 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.52
+#Version: 1.54
 
 from logging import PlaceHolder
 import math
 import os
 import sys
 import traceback
+import copy
 import numpy as np
 import modules.scripts as scripts
 import gradio as gr
@@ -97,19 +98,22 @@ class Script(scripts.Script):
         batch_count=p.n_iter
         state.job_count = loops*p.n_iter
         p.denoising_strength=p.denoising_strength or 1
+        initial_denoising_strength=p.denoising_strength
         p.do_not_save_grid = True
         original_init_image = p.init_images
         initial_color_corrections = [processing.setup_color_correction(p.init_images[0])]
         all_images = []
-        if loops>1:
-            processing.fix_seed(p)
-            #self.initDenoise=p.denoising_strength
-            p.extra_generation_params = {
+        p.extra_generation_params = {
                 "CFG Scheduler Info":" loops:"+str(loops)+" denoising decay: "+str(dns)+
                 "\nCFG: "+cfg+"\nETA: "+eta+"\n",
             }  
+        if loops>1:
+            processing.fix_seed(p)
+            #self.initDenoise=p.denoising_strength
+            
         for n in range(batch_count):
             history = []
+            p.denoising_strength=initial_denoising_strength
             p.init_images=original_init_image
             for loop in range(loops):
                 if opts.img2img_color_correction:
@@ -131,7 +135,8 @@ class Script(scripts.Script):
             all_images += history
         if loops>0:#TODO:maybe this is not needed
             p.seed=self.initSeed
-        return proc if (loops==1) else Processed(p, all_images, self.initSeed, self.initInfo)
+        #return proc if (loops==1 and p.batch_size==1) else Processed(p, all_images, self.initSeed, self.initInfo)
+        return Processed(p, all_images, self.initSeed, self.initInfo)
 
 
 
@@ -139,11 +144,14 @@ class Script(scripts.Script):
 
 
 
+    def peek(self,val):
+        print(val)
+        return val
 
     def split(self,src,default='0'):
         p=self.p
-        self.P={
-            'cfg':p.cfg_scale,
+        self.P=copy.copy({
+            'cfg':float(str(p.cfg_scale)),
             'd':p.denoising_strength or 1,
             'l':self.loop,
             'min':min,
@@ -154,8 +162,8 @@ class Script(scripts.Script):
             'x':self._interpolate,
             'int':int,
             'floor':math.floor,
-            
-        }
+            'peek':self.peek,
+        })
 
         if src[0:4]=="eval":
             src="0:"+src[4:]
@@ -197,8 +205,10 @@ class Script(scripts.Script):
             val=val[1:]
           
           _eta=1-j/p.steps
-          params={'t':j,'T':p.steps,'math':math,'p':p,'e':_eta}
-          params.update(self.P)
+          params={'t':j,'T':p.steps,'math':math,'p':p,'e':float(str(_eta))}
+          
+          params.update(copy.copy(self.P))
+          #print(params)
           s.append(float(eval(val,params)))
           #end while loop
           #else:    
@@ -250,12 +260,12 @@ class Fake_float(float):
     def __rmul__(self,other):
         return self.fake_mul(other)
 
-    def __add__(self,other):
+    #def __add__(self,other):
         #print("ADD!")
-        return self.get_fake_value(other)+other
-    def __sub__(self,other):
+    #    return self.get_fake_value(other)+other
+    #def __sub__(self,other):
         #print("SUB!")
-        return self.get_fake_value(other)-other
+    #    return self.get_fake_value(other)-other
 
 
 
