@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.54
+#Version: 1.55
 
 from logging import PlaceHolder
 import math
@@ -94,14 +94,19 @@ class Script(scripts.Script):
 
 
     def run(self, p, cfg,eta,dns):
+        self.initSeed=p.seed
         loops=p.batch_size
         batch_count=p.n_iter
         state.job_count = loops*p.n_iter
         p.denoising_strength=p.denoising_strength or 1
         initial_denoising_strength=p.denoising_strength
         p.do_not_save_grid = True
-        original_init_image = p.init_images
-        initial_color_corrections = [processing.setup_color_correction(p.init_images[0])]
+        if hasattr(p,"init_images"):
+            original_init_image = p.init_images
+            initial_color_corrections = [processing.setup_color_correction(p.init_images[0])]
+        else:
+            original_init_image=None
+        
         all_images = []
         p.extra_generation_params = {
                 "CFG Scheduler Info":" loops:"+str(loops)+" denoising decay: "+str(dns)+
@@ -114,9 +119,10 @@ class Script(scripts.Script):
         for n in range(batch_count):
             history = []
             p.denoising_strength=initial_denoising_strength
-            p.init_images=original_init_image
+            if (original_init_image!=None):
+                p.init_images=original_init_image
             for loop in range(loops):
-                if opts.img2img_color_correction:
+                if opts.img2img_color_correction and original_init_image!=None:
                         p.color_corrections = initial_color_corrections
 
                 p.batch_size = 1
@@ -127,10 +133,13 @@ class Script(scripts.Script):
                 if loop==0:
                     self.initInfo=proc.info
                     self.initSeed=proc.seed
-                history.append(proc.images[0])
-                p.seed+=1
-                p.init_images=[proc.images[0]]
-                p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
+                if len(proc.images)>0:
+                    history.append(proc.images[0])
+                    p.seed+=1
+                    p.init_images=[proc.images[0]]
+                    p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
+                else:#interrupted
+                    break
                 #print("New denoising:"+str(p.denoising_strength)+"\n" )
             all_images += history
         if loops>0:#TODO:maybe this is not needed
@@ -170,8 +179,12 @@ class Script(scripts.Script):
         if src[0]=="=":
             src="0:"+src[1:]
 
-        
-        
+        #clean up
+        while src[len(src)-1] in [";"," "]:
+            src=src[0:len(src)-1]
+        while src[0] in [";"," "]:
+            src=src[1:]
+
         arr0 = src.split(';')##2
 
         #resort array accounting for commas in indecies
