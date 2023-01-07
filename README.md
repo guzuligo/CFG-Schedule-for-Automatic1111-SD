@@ -1,6 +1,7 @@
 # CFG-Schedule-for-Automatic1111-SD
 ## CFG Auto.py
 A simplified version. Contains tools to make the small denoising effective.
+Its main use is to fix img2img drastic change to images and makes it preserve original image features.
 
 Following was set on denising: 0.1
 Batch size is used to loop. Batch size:4
