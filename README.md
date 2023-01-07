@@ -4,6 +4,7 @@ A simplified version. Contains tools to make the small denoising effective.
 
 Following was set on denising: 0.1
 Batch size is used to loop. Batch size:4
+##
 Input:![index](https://user-images.githubusercontent.com/4189008/211174581-c115bfde-970a-4a41-a9f7-306138e71462.jpg) output ![00150-2661151044-k-pop star  Red Necktie  Black suit and a white shirt under it](https://user-images.githubusercontent.com/4189008/211174606-1d540377-3e5e-48de-82a4-890a4b4287be.jpg)
 
 
