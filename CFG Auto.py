@@ -42,7 +42,7 @@ class Script(scripts.Script):
         return [n0,n1,n2]
 
     def uiAuto(self, is_img2img):
-        self.autoOptions={"b1":"Blur First V1"}
+        self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1"}
         n0=gr.Dropdown(list(self.autoOptions.values()),value=self.autoOptions["b1"])
         dns = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.5)
         n1 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Strength', value=50)
@@ -115,9 +115,11 @@ class Script(scripts.Script):
 
     def runBasic(self,p,n0,dns,ns1,ns2,nr1,nr2):
         if(n0==self.autoOptions["b1"]):
-            cfg=f"""0:3/(1+{ns2}) if (t<T* ({nr1/100}**2)) else cfg"""
-            eta=f"""0:{ns1} if (t<T*({nr1/100}**2)  ) else e*({nr2/50})"""
-
+            cfg=f"""0:{ns2}/2 if (t<T* (({nr1}/100)**2)) else cfg"""
+            eta=f"""0:{ns1}+1 if (t<T*(({nr1}/100)**2)  ) else e*({nr2}/50)"""
+        elif(n0==self.autoOptions["f1"]):
+            cfg=f"""0:({ns1}*4)*((1-d**0.5)**1.5)/(t*(30-cfg)/30+1)/(l*2+1) 	if (t<T*{nr1}/100) else 0.1 if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 7-d*7"""
+            eta=f"""0:0.8+{ns2}/25-min(t*0.1, 0.8+{ns2}/25 -0.01)			if (t<T*{nr1}/100) else {ns2}/(10*(1+l*0.5)) if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 1+e"""
         return self.runAdvanced(p,cfg,eta,dns)
 
 
