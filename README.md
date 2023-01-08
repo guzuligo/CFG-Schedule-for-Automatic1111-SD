@@ -1,4 +1,7 @@
 # CFG-Schedule-for-Automatic1111-SD
+Note: Works with Eular a. Might not work with the rest of the samplers.
+
+
 ## CFG Auto.py
 A simplified version. Contains tools to make the small denoising effective.
 Its main use is to fix img2img drastic change to images and makes it preserve original image features.
