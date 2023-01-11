@@ -1,6 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
+#Version: 1.7
 
 from logging import PlaceHolder
 import math
@@ -40,15 +41,18 @@ class Script(scripts.Script):
         #n2 = gr.Slider(minimum=1, maximum=32, step=1, label='Loops', value=1)
         n2 = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.5)
         return [n0,n1,n2]
-
+    #uiBasic
     def uiAuto(self, is_img2img):
         self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1"}
-        n0=gr.Dropdown(list(self.autoOptions.values()),value=self.autoOptions["b1"])
-        dns = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.5)
-        n1 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Strength', value=50)
-        n2 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Strength', value=50)
-        n3 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Range', value=50)
-        n4 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Range', value=50)
+        with gr.Row():
+            dns = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.25)
+            n0=gr.Dropdown(list(self.autoOptions.values()),value=self.autoOptions["b1"],label="Scheduler")
+        with gr.Row():
+            n1 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Strength', value=10)
+            n2 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Strength', value=10)
+        with gr.Row():
+            n3 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Range', value=10)
+            n4 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Range', value=10)
         
         return [n0,dns,   n1,n2,n3,n4   ]
 
@@ -120,15 +124,18 @@ class Script(scripts.Script):
         elif(n0==self.autoOptions["f1"]):
             cfg=f"""0:({ns1}*4)*((1-d**0.5)**1.5)/(t*(30-cfg)/30+1)/(l*2+1) 	if (t<T*{nr1}/100) else 0.1 if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 7-d*7"""
             eta=f"""0:0.8+{ns2}/25-min(t*0.1, 0.8+{ns2}/25 -0.01)			if (t<T*{nr1}/100) else {ns2}/(10*(1+l*0.5)) if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 1+e"""
+        
+        self.cfgsib={"Scheduler":n0,'Main Strength':ns1,'Sub- Strength':ns2,'Main Range':nr1,'Sub- Range':nr2}
         return self.runAdvanced(p,cfg,eta,dns)
 
 
     def runAdvanced(self, p, cfg,eta,dns):
         self.initSeed=p.seed
         loops=p.batch_size
+        
         batch_count=p.n_iter
         state.job_count = loops*p.n_iter
-        p.denoising_strength=p.denoising_strength or 1
+        p.denoising_strength=p.denoising_strength or (1 if (self.isAdvanced) else 0.2)
         initial_denoising_strength=p.denoising_strength
         p.do_not_save_grid = True
         if hasattr(p,"init_images"):
@@ -138,10 +145,18 @@ class Script(scripts.Script):
             original_init_image=None
         
         all_images = []
+        cfgsi=" loops:"+str(loops)+" terget denoising: "+str(dns)+"\nCFG: "+cfg+"\nETA: "+eta+"\n"
+        
         p.extra_generation_params = {
-                "CFG Scheduler Info":" loops:"+str(loops)+" terget denoising: "+str(dns)+
-                "\nCFG: "+cfg+"\nETA: "+eta+"\n",
-            }  
+                "CFG Scheduler Info":cfgsi,
+            } 
+        
+
+        #if basic, add basic info as well
+        if (self.isAdvanced==False):
+            self.cfgsib.update(p.extra_generation_params)
+            p.extra_generation_params=self.cfgsib
+
         if loops>1:
             processing.fix_seed(p)
             #self.initDenoise=p.denoising_strength
