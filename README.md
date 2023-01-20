@@ -1,3 +1,6 @@
+#How to install
+Drop the .py files in your automatic1111 scripts folder.
+
 # CFG-Schedule-for-Automatic1111-SD
 Note: Works with Eular a. Might not work with the rest of the samplers.
 
