@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.7
+#Version: 1.71
 
 from logging import PlaceHolder
 import math
@@ -19,11 +19,11 @@ from modules.processing import process_images, Processed
 from modules.processing import Processed
 from modules.shared import opts, cmd_opts, state
 class Script(scripts.Script):
-    def run(self,p,n0,dns,ns1,ns2,nr1,nr2):
-        return self.runBasic(p,n0,dns,ns1,ns2,nr1,nr2)
+    def run(self,p,n0,dns,ns1,ns2,nr1,nr2   ,loops,nSingle):
+        return self.runBasic(p,n0,dns,ns1,ns2,nr1,nr2   ,loops,nSingle)
 
-    #def run(self,p,cfg,eta,dns):
-    #    return self.runAdvanced(p,cfg,eta,dns)
+    #def run(self,p,cfg,eta,dns ,loops,nSingle):
+    #    return self.runAdvanced(p,cfg,eta,dns ,loops,nSingle)
 
     def show(self, is_img2img):
         self.isAdvanced=False
@@ -40,7 +40,11 @@ class Script(scripts.Script):
         #loops
         #n2 = gr.Slider(minimum=1, maximum=32, step=1, label='Loops', value=1)
         n2 = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.5)
-        return [n0,n1,n2]
+        with gr.Row():
+            loops=gr.Number(value=1,precision=0,label="loops")
+            nSingle= gr.Checkbox(label="Loop returns one")
+            
+        return [n0,n1,n2    ,loops,nSingle]
     #uiBasic
     def uiAuto(self, is_img2img):
         self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1"}
@@ -53,8 +57,10 @@ class Script(scripts.Script):
         with gr.Row():
             n3 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Range', value=10)
             n4 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Range', value=10)
-        
-        return [n0,dns,   n1,n2,n3,n4   ]
+        with gr.Row():
+            loops=gr.Number(value=1,precision=0,label="loops")
+            nSingle= gr.Checkbox(label="Loop returns one")
+        return [n0,dns,   n1,n2,n3,n4   ,loops,nSingle]
 
     def ui(self, is_img2img):
         return self.uiAdvanced(is_img2img) if (self.isAdvanced) else self.uiAuto(is_img2img)
@@ -117,7 +123,7 @@ class Script(scripts.Script):
 
 
 
-    def runBasic(self,p,n0,dns,ns1,ns2,nr1,nr2):
+    def runBasic(self,p,n0,dns,ns1,ns2,nr1,nr2  ,loops,nSingle):
         if(n0==self.autoOptions["b1"]):
             cfg=f"""0:{ns2}/2 if (t<T* (({nr1}/100)**2)) else cfg"""
             eta=f"""0:{ns1}+1 if (t<T*(({nr1}/100)**2)  ) else e*({nr2}/50)"""
@@ -126,13 +132,14 @@ class Script(scripts.Script):
             eta=f"""0:0.8+{ns2}/25-min(t*0.1, 0.8+{ns2}/25 -0.01)			if (t<T*{nr1}/100) else {ns2}/(10*(1+l*0.5)) if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 1+e"""
         
         self.cfgsib={"Scheduler":n0,'Main Strength':ns1,'Sub- Strength':ns2,'Main Range':nr1,'Sub- Range':nr2}
-        return self.runAdvanced(p,cfg,eta,dns)
+        return self.runAdvanced(p,cfg,eta,dns   ,loops,nSingle)
 
 
-    def runAdvanced(self, p, cfg,eta,dns):
+    def runAdvanced(self, p, cfg,eta,dns    ,loops,nSingle):
         self.initSeed=p.seed
-        loops=p.batch_size
-        
+        #loops=p.batch_size
+        loops = loops if (loops>0) else 1
+
         batch_count=p.n_iter
         state.job_count = loops*p.n_iter
         p.denoising_strength=p.denoising_strength or (1 if (self.isAdvanced) else 0.2)
@@ -162,6 +169,7 @@ class Script(scripts.Script):
             #self.initDenoise=p.denoising_strength
             
         for n in range(batch_count):
+            proc=None
             history = []
             p.denoising_strength=initial_denoising_strength
             if (original_init_image!=None):
@@ -191,7 +199,7 @@ class Script(scripts.Script):
         if loops>0:#TODO:maybe this is not needed
             p.seed=self.initSeed
         #return proc if (loops==1 and p.batch_size==1) else Processed(p, all_images, self.initSeed, self.initInfo)
-        return Processed(p, all_images, self.initSeed, self.initInfo)
+        return proc if(nSingle) else Processed(p, all_images, self.initSeed, self.initInfo)
 
 
 
