@@ -1,4 +1,4 @@
-#How to install
+# How to install
 Drop the .py files in your automatic1111 scripts folder.
 
 # CFG-Schedule-for-Automatic1111-SD
