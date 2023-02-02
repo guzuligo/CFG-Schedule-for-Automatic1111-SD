@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.55
+#Version: 1.8
 
 from logging import PlaceHolder
 import math
@@ -19,20 +19,51 @@ from modules.processing import process_images, Processed
 from modules.processing import Processed
 from modules.shared import opts, cmd_opts, state
 class Script(scripts.Script):
+    #def run(self,p,n0,dns,ns1,ns2,nr1,nr2   ,loops,nSingle):
+    #    return self.runBasic(p,n0,dns,ns1,ns2,nr1,nr2   ,loops,nSingle)
+
+    def run(self,p,cfg,eta,dns ,loops,nSingle):
+        return self.runAdvanced(p,cfg,eta,dns ,loops,nSingle)
+
     def show(self, is_img2img):
+        self.isAdvanced=True
         return True
     def title(self):
-        return "CFG Scheduling"
+        return "CFG Scheduling" if (self.isAdvanced) else "CFG Auto"
 
-    def ui(self, is_img2img):
+    def uiAdvanced(self, is_img2img):
+
         placeholder="The steps on which to modify, in format step:value - example: 0:10 ; 10:15"
         n0 = gr.Textbox(label="CFG",placeholder=placeholder)
         placeholder="You can also use functions like: 0: math.fabs(-t) ; 1: (1-t/T) ; 2:=e ;3:t*d"
         n1 = gr.Textbox(label="ETA",placeholder=placeholder)
         #loops
         #n2 = gr.Slider(minimum=1, maximum=32, step=1, label='Loops', value=1)
-        n2 = gr.Slider(minimum=0.5, maximum=1.5, step=0.01, label='Denoising Decay per Batch', value=1)
-        return [n0,n1,n2]
+        n2 = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.5)
+        with gr.Row():
+            loops=gr.Number(value=1,precision=0,label="loops")
+            nSingle= gr.Checkbox(label="Loop returns one")
+            
+        return [n0,n1,n2    ,loops,nSingle]
+    #uiBasic
+    def uiAuto(self, is_img2img):
+        self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1"}
+        with gr.Row():
+            dns = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.25)
+            n0=gr.Dropdown(list(self.autoOptions.values()),value=self.autoOptions["b1"],label="Scheduler")
+        with gr.Row():
+            n1 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Strength', value=10)
+            n2 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Strength', value=10)
+        with gr.Row():
+            n3 = gr.Slider(minimum=0, maximum=100, step=1, label='Main Range', value=10)
+            n4 = gr.Slider(minimum=0, maximum=100, step=1, label='Sub- Range', value=10)
+        with gr.Row():
+            loops=gr.Number(value=1,precision=0,label="loops")
+            nSingle= gr.Checkbox(label="Loop returns one")
+        return [n0,dns,   n1,n2,n3,n4   ,loops,nSingle]
+
+    def ui(self, is_img2img):
+        return self.uiAdvanced(is_img2img) if (self.isAdvanced) else self.uiAuto(is_img2img)
 
     def prepare(self,p,cfg,eta):
         sampler_name=p.sampler_name
@@ -92,13 +123,26 @@ class Script(scripts.Script):
 
 
 
+    def runBasic(self,p,n0,dns,ns1,ns2,nr1,nr2  ,loops,nSingle):
+        if(n0==self.autoOptions["b1"]):
+            cfg=f"""0:{ns2}/2 if (t<T* (({nr1}/100)**2)) else cfg"""
+            eta=f"""0:{ns1}+1 if (t<T*(({nr1}/100)**2)  ) else e*({nr2}/50)"""
+        elif(n0==self.autoOptions["f1"]):
+            cfg=f"""0:({ns1}*4)*((1-d**0.5)**1.5)/(t*(30-cfg)/30+1)/(l*2+1) 	if (t<T*{nr1}/100) else 0.1 if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 7-d*7"""
+            eta=f"""0:0.8+{ns2}/25-min(t*0.1, 0.8+{ns2}/25 -0.01)			if (t<T*{nr1}/100) else {ns2}/(10*(1+l*0.5)) if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 1+e"""
+        
+        self.cfgsib={"Scheduler":n0,'Main Strength':ns1,'Sub- Strength':ns2,'Main Range':nr1,'Sub- Range':nr2}
+        return self.runAdvanced(p,cfg,eta,dns   ,loops,nSingle)
 
-    def run(self, p, cfg,eta,dns):
+
+    def runAdvanced(self, p, cfg,eta,dns    ,loops,nSingle):
         self.initSeed=p.seed
-        loops=p.batch_size
+        #loops=p.batch_size
+        loops = loops if (loops>0) else 1
+
         batch_count=p.n_iter
         state.job_count = loops*p.n_iter
-        p.denoising_strength=p.denoising_strength or 1
+        p.denoising_strength=p.denoising_strength or (1 if (self.isAdvanced) else 0.2)
         initial_denoising_strength=p.denoising_strength
         p.do_not_save_grid = True
         if hasattr(p,"init_images"):
@@ -108,15 +152,24 @@ class Script(scripts.Script):
             original_init_image=None
         
         all_images = []
+        cfgsi=" loops:"+str(loops)+" terget denoising: "+str(dns)+"\nCFG: "+cfg+"\nETA: "+eta+"\n"
+        
         p.extra_generation_params = {
-                "CFG Scheduler Info":" loops:"+str(loops)+" denoising decay: "+str(dns)+
-                "\nCFG: "+cfg+"\nETA: "+eta+"\n",
-            }  
+                "CFG Scheduler Info":cfgsi,
+            } 
+        
+
+        #if basic, add basic info as well
+        if (self.isAdvanced==False):
+            self.cfgsib.update(p.extra_generation_params)
+            p.extra_generation_params=self.cfgsib
+
         if loops>1:
             processing.fix_seed(p)
             #self.initDenoise=p.denoising_strength
             
         for n in range(batch_count):
+            proc=None
             history = []
             p.denoising_strength=initial_denoising_strength
             if (original_init_image!=None):
@@ -137,7 +190,8 @@ class Script(scripts.Script):
                     history.append(proc.images[0])
                     p.seed+=1
                     p.init_images=[proc.images[0]]
-                    p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
+                    #p.denoising_strength=min(max(p.denoising_strength * dns, 0.05), 1)
+                    p.denoising_strength=initial_denoising_strength+(dns-initial_denoising_strength)*(loop+1)/(loops)
                 else:#interrupted
                     break
                 #print("New denoising:"+str(p.denoising_strength)+"\n" )
@@ -145,7 +199,7 @@ class Script(scripts.Script):
         if loops>0:#TODO:maybe this is not needed
             p.seed=self.initSeed
         #return proc if (loops==1 and p.batch_size==1) else Processed(p, all_images, self.initSeed, self.initInfo)
-        return Processed(p, all_images, self.initSeed, self.initInfo)
+        return proc if(nSingle) else Processed(p, all_images, self.initSeed, self.initInfo)
 
 
 
@@ -208,7 +262,7 @@ class Script(scripts.Script):
           while i<len(arr) and i<=j:
               v=arr[i].split(":")
               #s=proc[j].n_iter
-              if int(v[0])==j:
+              if math.floor(int(v[0]) if v[0].isnumeric() else float(v[0])*p.steps)==j:
                  val=v[1].strip()
                  break
               i=i+1
@@ -235,7 +289,8 @@ class Script(scripts.Script):
         return v*m/(end-start)+(1 if m<0 else 0)
 
     def _sort(self,a):
-        return int(a.split(":")[0])
+        _=a.split(":")[0]#splitter tester
+        return math.floor(int(_) if (_.isnumeric()) else float(_)*self.p.steps)
 
     def evaluate (self,src):
         s=[]

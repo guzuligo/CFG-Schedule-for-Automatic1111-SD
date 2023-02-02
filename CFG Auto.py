@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.71
+#Version: 1.8
 
 from logging import PlaceHolder
 import math
@@ -262,7 +262,7 @@ class Script(scripts.Script):
           while i<len(arr) and i<=j:
               v=arr[i].split(":")
               #s=proc[j].n_iter
-              if int(v[0])==j:
+              if math.floor(int(v[0]) if v[0].isnumeric() else float(v[0])*p.steps)==j:
                  val=v[1].strip()
                  break
               i=i+1
@@ -289,7 +289,8 @@ class Script(scripts.Script):
         return v*m/(end-start)+(1 if m<0 else 0)
 
     def _sort(self,a):
-        return int(a.split(":")[0])
+        _=a.split(":")[0]#splitter tester
+        return math.floor(int(_) if (_.isnumeric()) else float(_)*self.p.steps)
 
     def evaluate (self,src):
         s=[]
