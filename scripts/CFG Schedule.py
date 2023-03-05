@@ -1,7 +1,7 @@
 #CFG Scheduler for Automatic1111 Stable Diffusion web-ui
 #Author: https://github.com/guzuligo/
 #Based on: https://github.com/tkalayci71/attenuate-cfg-scale
-#Version: 1.8
+#Version: 1.81
 
 from logging import PlaceHolder
 import math
@@ -47,7 +47,7 @@ class Script(scripts.Script):
         return [n0,n1,n2    ,loops,nSingle]
     #uiBasic
     def uiAuto(self, is_img2img):
-        self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1"}
+        self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1","b2":"Blur Last"}
         with gr.Row():
             dns = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.25)
             n0=gr.Dropdown(list(self.autoOptions.values()),value=self.autoOptions["b1"],label="Scheduler")
@@ -130,7 +130,9 @@ class Script(scripts.Script):
         elif(n0==self.autoOptions["f1"]):
             cfg=f"""0:({ns1}*4)*((1-d**0.5)**1.5)/(t*(30-cfg)/30+1)/(l*2+1) 	if (t<T*{nr1}/100) else 0.1 if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 7-d*7"""
             eta=f"""0:0.8+{ns2}/25-min(t*0.1, 0.8+{ns2}/25 -0.01)			if (t<T*{nr1}/100) else {ns2}/(10*(1+l*0.5)) if (t<T*({nr1}+{nr2}-{nr1}*{nr2})/100) else 1+e"""
-        
+        elif(n0==self.autoOptions["b2"]):
+            cfg=f"""0:cfg if (e>{nr1}/100 or e<(1-({nr1}+{nr2}*(100-{nr1})/100)/100)) else {ns2}/10"""
+            eta=f"""0:e   if (e>{nr1}/100 or e<(1-({nr1}+{nr2}*(100-{nr1})/100)/100)) else {ns1}/10"""
         self.cfgsib={"Scheduler":n0,'Main Strength':ns1,'Sub- Strength':ns2,'Main Range':nr1,'Sub- Range':nr2}
         return self.runAdvanced(p,cfg,eta,dns   ,loops,nSingle)
 
