@@ -47,7 +47,7 @@ class Script(scripts.Script):
         return [n0,n1,n2    ,loops,nSingle]
     #uiBasic
     def uiAuto(self, is_img2img):
-        self.autoOptions={"b1":"Blur First V1","f1":"Force at Start V1","b2":"Blur Last"}
+        self.autoOptions={"b1":"Blur First V1","b2":"Blur Last","f1":"Force at Start V1","f2":"Force Allover"}
         with gr.Row():
             dns = gr.Slider(minimum=0, maximum=1, step=0.01, label='Target Denoising : Decay per Batch', value=0.25)
             n0=gr.Dropdown(list(self.autoOptions.values()),value=self.autoOptions["b1"],label="Scheduler")
@@ -133,6 +133,9 @@ class Script(scripts.Script):
         elif(n0==self.autoOptions["b2"]):
             cfg=f"""0:cfg if (e>{nr1}/100 or e<(1-({nr1}+{nr2}*(100-{nr1})/100)/100)) else {ns2}/10"""
             eta=f"""0:e   if (e>{nr1}/100 or e<(1-({nr1}+{nr2}*(100-{nr1})/100)/100)) else {ns1}/10"""
+        elif(n0==self.autoOptions["f2"]):
+            cfg=f"""= min(40,max(0,cfg+x(t)*({ns2}-50)/2 )) """
+            eta=f"""0:(1-(t%(2+  10-.1*{nr1}  ))/ (2+10-.1*{nr1}) )*{ns1}*.1  * (e*(100-{nr2})+{nr2})*.01 """
         self.cfgsib={"Scheduler":n0,'Main Strength':ns1,'Sub- Strength':ns2,'Main Range':nr1,'Sub- Range':nr2}
         return self.runAdvanced(p,cfg,eta,dns   ,loops,nSingle)
 
